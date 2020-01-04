@@ -1,0 +1,23 @@
+$date
+	Thu Jul  6 09:42:27 2017
+$end
+$version
+	QuestaSim Version 10.5c_3
+$end
+$timescale
+	1ns
+$end
+
+$scope module mips_top_tb $end
+
+$scope begin gen_CPU $end
+
+$scope module mips_top_inst $end
+
+$scope module mips_core_top_inst $end
+$var wire 1 ! imem_slaves_in_o [0] $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end

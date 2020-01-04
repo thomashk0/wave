@@ -29,6 +29,24 @@ pub enum VcdError {
     Utf8Error,
 }
 
+impl std::fmt::Display for VcdError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            VcdError::IoError(e) => e.fmt(f),
+            x => write!(f, "{:?}", x),
+        }
+    }
+}
+
+impl std::error::Error for VcdError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            VcdError::IoError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 impl From<io::Error> for VcdError {
     fn from(e: io::Error) -> Self {
         VcdError::IoError(e)
@@ -91,13 +109,13 @@ pub struct VcdVariable {
     pub scope: Vec<VcdScope>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct VcdScope {
     pub kind: String,
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct VcdHeader {
     pub variables: Vec<VcdVariable>,
 }
@@ -106,6 +124,7 @@ pub struct VcdHeaderParser {
     pub header: VcdHeader,
     header_valid: bool,
     scope: Vec<VcdScope>,
+    verbose: bool,
 }
 
 impl VcdHeaderParser {
@@ -121,6 +140,7 @@ impl VcdHeaderParser {
             },
             header_valid: false,
             scope,
+            verbose: false,
         }
     }
 
@@ -166,7 +186,9 @@ impl VcdHeaderParser {
                 Ok((remaining, false))
             }
             x => {
-                eprintln!("warning: ignoring directive {}...", x);
+                if self.verbose {
+                    eprintln!("warning: ignoring directive {}", x);
+                }
                 let (remaining, _) = skip_until_vcd_end(remaining)?;
                 Ok((remaining, false))
             }

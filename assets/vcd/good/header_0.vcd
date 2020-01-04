@@ -1,0 +1,12 @@
+$lol $end
+$scope module mips_top_inst $end
+$scope module mips_top_inst_1 $end
+
+$var reg 1 ! system_clk $end
+$var reg 32 "bb system_clk[31:0] $end
+$var reg 32 "bb system_clk [0] $end
+$enddefinitions $end
+
+#0
+$dumpon
+$end
