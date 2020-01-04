@@ -12,9 +12,12 @@ fn vcd_asset(rel_path: &str) -> PathBuf {
     path
 }
 
-fn parse_file(filepath: &PathBuf) -> Result<(VcdHeader, usize), Box<dyn std::error::Error>> {
+fn parse_file(
+    filepath: &PathBuf,
+    chunk_size: usize,
+) -> Result<(VcdHeader, usize), Box<dyn std::error::Error>> {
     let f = File::open(filepath)?;
-    let mut parser = VcdParser::new(f);
+    let mut parser = VcdParser::with_chunk_size(chunk_size, f);
     let header = parser.load_header()?.clone();
     let mut cnt = 0;
     parser.process_vcd_commands(|_cmd| {
@@ -26,7 +29,7 @@ fn parse_file(filepath: &PathBuf) -> Result<(VcdHeader, usize), Box<dyn std::err
 
 #[test]
 fn parse_ghdl_0() -> Result<(), Box<dyn std::error::Error>> {
-    let (header, n_cmd) = parse_file(&vcd_asset("good/ghdl_0.vcd"))?;
+    let (header, n_cmd) = parse_file(&vcd_asset("good/ghdl_0.vcd"), 3)?;
     assert_eq!(header.variables.len(), 10);
     assert_eq!(n_cmd, 29);
     Ok(())
@@ -34,7 +37,7 @@ fn parse_ghdl_0() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn parse_header_0() -> Result<(), Box<dyn std::error::Error>> {
-    let (header, n_cmd) = parse_file(&vcd_asset("good/header_0.vcd"))?;
+    let (header, n_cmd) = parse_file(&vcd_asset("good/header_0.vcd"), 128)?;
     assert_eq!(header.variables.len(), 3);
     assert_eq!(n_cmd, 3);
     Ok(())

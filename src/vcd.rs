@@ -26,6 +26,7 @@ pub enum VcdError {
     IoError(io::Error),
     ParseError,
     MissingData,
+    PartialHeader,
     Utf8Error,
 }
 
@@ -227,11 +228,10 @@ struct VcdStreamParser<R> {
 }
 
 impl<R: Read> VcdStreamParser<R> {
-    pub fn new(inner: R) -> Self {
-        const CHUNK_SIZE: usize = 1024 * 1024;
+    pub fn with_chunk_size(chunk_size: usize, inner: R) -> Self {
         VcdStreamParser {
-            buff: utils::Buffer::with_capacity(2 * CHUNK_SIZE, inner),
-            chunk_size: CHUNK_SIZE,
+            buff: utils::Buffer::with_capacity(2 * chunk_size, inner),
+            chunk_size,
             end_of_input: false,
         }
     }
@@ -318,9 +318,9 @@ pub struct VcdParser<R> {
 }
 
 impl<R: Read> VcdParser<R> {
-    pub fn new(inner: R) -> Self {
+    pub fn with_chunk_size(chunk_size: usize, inner: R) -> Self {
         VcdParser {
-            buffer: VcdStreamParser::new(inner),
+            buffer: VcdStreamParser::with_chunk_size(chunk_size, inner),
             header_parser: VcdHeaderParser::new(),
         }
     }
@@ -340,6 +340,14 @@ impl<R: Read> VcdParser<R> {
                 return Ok(&self.header_parser.header);
             }
         }
+    }
+
+    pub fn header(&self) -> Option<&VcdHeader> {
+        self.header_parser.header()
+    }
+
+    pub fn done(&self) -> bool {
+        self.buffer.done()
     }
 
     pub fn process_vcd_commands<F>(&mut self, mut callback: F) -> Result<(), VcdError>
