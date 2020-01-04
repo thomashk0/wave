@@ -1,5 +1,8 @@
 # A Rust-based toolkit for digital waveform manipulation
 
+[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
+[![Build Status](https://travis-ci.com/thomashk0/wave.svg?branch=master)](https://travis-ci.com/thomashk0/wave)
+
 The `wave` project is a toolkit for digital waveform parsing and processing.
 The waveform we are talking about here are produced by CAD tools in formats
 like [Value Change Dump (VCD)](https://en.wikipedia.org/wiki/Value_change_dump)
@@ -13,4 +16,4 @@ This project includes:
 
 ## License
 
-This project is under a MIT license.
+This project is under a [MIT license](./LICENSE.txt).
