@@ -2,7 +2,7 @@ import ctypes
 import enum
 import json
 from ctypes import POINTER, byref
-from typing import List
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pkg_resources
@@ -29,13 +29,13 @@ class Status(enum.IntEnum):
     UNKNOWN = 255
 
 
-class StateSimS(ctypes.Structure):
+class _StateSimS(ctypes.Structure):
     pass
 
 
 for _lib in [LIB_DEBUG, LIB]:
     _lib.wave_sim_create.argtypes = (ctypes.c_char_p, POINTER(ctypes.c_int32),)
-    _lib.wave_sim_create.restype = POINTER(StateSimS)
+    _lib.wave_sim_create.restype = POINTER(_StateSimS)
 
     _lib.wave_sim_header_info.restype = ctypes.c_char_p
     _lib.wave_str_destroy.argtypes = (ctypes.c_char_p,)
@@ -63,6 +63,11 @@ class WaveError(Exception):
 
 
 class _ObjWrapper:
+    """
+    Wraps a Python dict object and give read access to its content as
+    class attributes.
+    """
+
     def __init__(self, obj, allowed_fields=None):
         self.obj = obj
         self.allowed_fields = allowed_fields or set()
@@ -78,6 +83,13 @@ class VariableInfo(_ObjWrapper):
         super().__init__(obj)
         self.offset = offset
 
+    def is_little_endian(self) -> bool:
+        r = self.range
+        if not isinstance(r, dict):
+            return True
+        rmin, rmax = tuple(r['Range'])
+        return rmax > rmin
+
     @property
     def type(self):
         return self.obj['type']
@@ -86,6 +98,17 @@ class VariableInfo(_ObjWrapper):
     def scope(self):
         return ".".join(w['name'] for w in self.obj['scope'])
 
+    def value(self, data: np.ndarray) -> int:
+        s = self.offset
+        c = data[s:s + self.width]
+        if not np.all(c >= 0):
+            raise ValueError("variable has bits in undefined state")
+        order = "little" if self.is_little_endian() else "big"
+        word = np.packbits(c, bitorder=order)
+        if order == "big":
+            word = word[::-1]
+        return sum(int(x) << (8 * i) for i, x in enumerate(word))
+
     def __repr__(self):
         return f"VariableInfo<id='{self.id}', name={self.name}>"
 
@@ -93,6 +116,10 @@ class VariableInfo(_ObjWrapper):
 class HeaderInfo(_ObjWrapper):
     def __init__(self, obj):
         super().__init__(obj)
+
+    def var(self, name: str) -> VariableInfo:
+        v = self.obj[name]
+        return VariableInfo(v[1], offset=v[0])
 
     @property
     def variables(self) -> List[VariableInfo]:
@@ -132,7 +159,22 @@ class StateSim:
         finally:
             self.lib.wave_str_destroy(s)
 
-    def next_cycle(self):
+    def next_cycle(self) -> Optional[Tuple[int, np.ndarray]]:
+        """
+        Runs the parser until the end of the next simulation cycle (or
+        the end of the file)
+
+        .. warning::
+
+            For efficiency reasons, the numpy array returned is a direct view
+            on memory, hence it will be modified on the next call of the
+            :py:method:`next_cycle` method. You must copy the array explicitly
+            if you do not need this behavior.
+
+        :return: None if the simulation is done (no more things to parse),
+                 otherwise returns the cycle and the value of all signals
+                 requested as a numpy array of int8.
+        """
         cycle = ctypes.c_int64(0)
         size = ctypes.c_uint64(0)
         p = ctypes.c_void_p()

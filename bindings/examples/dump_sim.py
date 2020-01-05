@@ -5,14 +5,23 @@ values from a waveform file (eg., in VCD format)
 import argparse
 import sys
 
-from pywave import BIT_REPR, StateSim, WaveError
+from pywave import BIT_REPR, StateSim, WaveError, VariableInfo
+
+
+def value_str(v: VariableInfo, data):
+    try:
+        log_width = (v.width + 7) // 8
+        fmt_str = f"0x{{:0{log_width}x}}"
+        return fmt_str.format(v.value(data))
+    except ValueError:
+        return "?"
 
 
 def dump_signals(variables, data):
     for v in variables:
         s = v.offset
-        print(f"{v.id:<2}: {v.name:20} ->",
-              "".join(BIT_REPR[x] for x in data[s:s + v.width]))
+        logic_str = "".join(BIT_REPR[x] for x in data[s:s + v.width])
+        print(f"{v.id:<2}: {v.name:20} -> {logic_str} {value_str(v, data)}")
 
 
 def main():
