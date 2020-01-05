@@ -83,6 +83,9 @@ class VariableInfo(_ObjWrapper):
         super().__init__(obj)
         self.offset = offset
 
+    def is_tracked(self) -> bool:
+        return self.offset is not None
+
     def is_little_endian(self) -> bool:
         r = self.range
         if not isinstance(r, dict):
@@ -116,14 +119,17 @@ class VariableInfo(_ObjWrapper):
 class HeaderInfo(_ObjWrapper):
     def __init__(self, obj):
         super().__init__(obj)
-
-    def var(self, name: str) -> VariableInfo:
-        v = self.obj[name]
-        return VariableInfo(v[1], offset=v[0])
+        self.variables = {v[1]['id']: VariableInfo(v[1], offset=v[0]) for v in
+                          self.obj.values()}
 
     @property
-    def variables(self) -> List[VariableInfo]:
-        variables = [VariableInfo(x[1], offset=x[0]) for x in self.obj.values()]
+    def state_variables(self) -> List[VariableInfo]:
+        """
+        Returns the list of variables that appears in the state (were not
+        excluded explicitly)
+        """
+        variables = [VariableInfo(x[1], offset=x[0]) for x in self.obj.values()
+                     if x[0] is not None]
         variables.sort(key=lambda x: x.offset)
         return variables
 
@@ -142,6 +148,18 @@ class StateSim:
         status = Status(self.lib.wave_sim_load_header(self.handle))
         if status != Status.OK:
             raise WaveError(status, "unable to load header")
+
+    def allocate_state(self, restrict=None):
+        p = None
+        n = ctypes.c_size_t(0)
+        if restrict:
+            buff = [elt.encode('utf-8') for elt in restrict]
+            p = (ctypes.c_char_p * len(buff))()
+            p[:] = buff
+            n = ctypes.c_size_t(len(buff))
+        status = Status(self.lib.wave_sim_allocate_state(self.handle, p, n))
+        if status != Status.OK:
+            raise WaveError(status, "unable to allocate simulation state")
 
     def header_info(self) -> HeaderInfo:
         """Query waveform header information

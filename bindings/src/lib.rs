@@ -2,6 +2,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 
+use std::slice;
 use wave::simulation::StateSimulation;
 use wave::vcd::VcdError;
 
@@ -37,10 +38,37 @@ pub unsafe extern "C" fn wave_sim_create(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wave_sim_load_header(ptr: *mut StateSimulation) -> i32 {
+pub extern "C" fn wave_sim_load_header(ptr: *mut StateSimulation) -> i32 {
     assert!(!ptr.is_null());
-    let sim = &mut *ptr;
+    let sim = unsafe { &mut *ptr };
     match sim.load_header() {
+        Ok(_) => 0,
+        Err(e) => encode_error(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn wave_sim_allocate_state(
+    ptr: *mut StateSimulation,
+    restrict: *const *const c_char,
+    n: usize,
+) -> i32 {
+    assert!(!ptr.is_null());
+    let sim = unsafe { &mut *ptr };
+    if !restrict.is_null() && n > 0 {
+        let names_ptr = unsafe { slice::from_raw_parts(restrict, n as usize) };
+        let mut vars: Vec<&str> = Vec::with_capacity(n);
+        for name_ptr in names_ptr {
+            let name = unsafe { CStr::from_ptr(*name_ptr).to_str() };
+            if name.is_err() {
+                return encode_error(VcdError::Utf8Error);
+            }
+            vars.push(name.unwrap());
+        }
+        sim.track_variables(&vars);
+    }
+
+    match sim.allocate_state() {
         Ok(_) => 0,
         Err(e) => encode_error(e),
     }

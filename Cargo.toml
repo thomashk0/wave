@@ -1,6 +1,6 @@
 [package]
 name = "wave"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Thomas Hiscock <thomashk000@gmail.com>"]
 edition = "2018"
 license = "MIT"

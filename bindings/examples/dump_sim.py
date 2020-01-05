@@ -26,14 +26,18 @@ def dump_signals(variables, data):
 
 def main():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument('-n', '--num-cycles', default=10,
+    parser.add_argument('-n', '--num-cycles', default=10, type=int,
                         help='Number of cycles to dump')
+    parser.add_argument('-r', '--restrict',
+                        action="append",
+                        help="List of variables to include in the simulation")
     parser.add_argument('input', metavar="file.vcd", help='Input file')
     args = parser.parse_args()
-
+    restrict = args.restrict or None
     try:
         sim = StateSim(args.input)
         sim.load_header()
+        sim.allocate_state(restrict=restrict)
         info = sim.header_info()
         for i in range(args.num_cycles):
             s = sim.next_cycle()
@@ -46,7 +50,7 @@ def main():
             else:
                 print()
                 print(f"== Cycle {c}")
-            dump_signals(info.variables, data)
+            dump_signals(info.state_variables, data)
     except WaveError as e:
         print(f"error: something went wrong in FFI layer -> {str(e.err)} ({e})")
         sys.exit(1)

@@ -1,6 +1,6 @@
 [package]
 name = "wave-bindings"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Thomas Hiscock <thomas.hiscock@wanadoo.fr>"]
 edition = "2018"
 license = "MIT"

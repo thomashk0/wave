@@ -15,8 +15,9 @@ fn sim_ghdl_0() -> Result<(), Box<dyn std::error::Error>> {
     let f = vcd_asset("good/ghdl_0.vcd");
     let mut sim = StateSimulation::new(f.to_str().unwrap())?;
     sim.load_header()?;
+    sim.allocate_state()?;
+    let clk_id = sim.header_info()?.get("!").unwrap().0.unwrap();
 
-    let clk_id = sim.header_info()?.get("!").unwrap().0;
     let (c, d) = sim.next_cycle()?;
     assert_eq!(c, -1);
     assert_eq!(d.len(), 289);

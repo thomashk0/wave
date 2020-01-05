@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io;
 
@@ -22,6 +22,7 @@ pub struct StateSimulation {
     state: Vec<i8>,
     var_map: HashMap<String, usize>,
     var_width: HashMap<String, usize>,
+    tracked_var: HashSet<String>,
     previous_cycle: i64,
     current_cycle: i64,
 }
@@ -35,12 +36,17 @@ impl StateSimulation {
             state: Vec::with_capacity(N_VAR),
             var_map: HashMap::with_capacity(N_VAR),
             var_width: HashMap::with_capacity(N_VAR),
+            tracked_var: HashSet::new(),
             previous_cycle: -1,
             current_cycle: -1,
         })
     }
 
-    fn alloc_variables(&mut self) -> Result<(), VcdError> {
+    pub fn track_variables(&mut self, vars: &[&str]) {
+        self.tracked_var.extend(vars.iter().map(|s| s.to_string()));
+    }
+
+    pub fn allocate_state(&mut self) -> Result<(), VcdError> {
         let mut offset = 0usize;
         let variables = &self
             .parser
@@ -51,6 +57,9 @@ impl StateSimulation {
             if v.vtype == "real" {
                 continue;
             }
+            if !self.tracked_var.is_empty() && !self.tracked_var.contains(&v.id) {
+                continue;
+            }
             self.var_map.insert(v.id.clone(), offset);
             self.var_width.insert(v.id.clone(), v.width as usize);
             offset += v.width as usize;
@@ -59,22 +68,23 @@ impl StateSimulation {
         Ok(())
     }
 
-    pub fn header_info(&self) -> Result<HashMap<&str, (usize, VcdVariable)>, VcdError> {
+    pub fn header_info(&self) -> Result<HashMap<&str, (Option<usize>, VcdVariable)>, VcdError> {
         let var_info = &self
             .parser
             .header()
             .ok_or(VcdError::PartialHeader)?
             .variables;
-        let mut w: HashMap<&str, (usize, VcdVariable)> = HashMap::with_capacity(var_info.len());
+        let mut w: HashMap<&str, (Option<usize>, VcdVariable)> =
+            HashMap::with_capacity(var_info.len());
         for v in var_info {
-            w.insert(&v.id, (*self.var_map.get(&v.id).unwrap(), v.clone()));
+            w.insert(&v.id, (self.var_map.get(&v.id).cloned(), v.clone()));
         }
         Ok(w)
     }
 
     pub fn load_header(&mut self) -> Result<(), VcdError> {
         self.parser.load_header()?;
-        self.alloc_variables()
+        Ok(())
     }
 
     pub fn done(&self) -> bool {
@@ -85,16 +95,18 @@ impl StateSimulation {
         let state = &mut self.state;
         let var_map = &self.var_map;
         let var_width = &self.var_width;
+        let tracked_var = &self.tracked_var;
         let mut cycle = 0;
         let callback = |cmd: VcdCommand| {
             match cmd {
-                VcdCommand::Directive(_) => {}
-                VcdCommand::VcdEnd => {}
                 VcdCommand::SetCycle(c) => {
                     cycle = c as i64;
                     return true;
                 }
                 VcdCommand::ValueChange(v) => {
+                    if !tracked_var.is_empty() && !tracked_var.contains(v.var_id) {
+                        return false;
+                    }
                     let base = var_map
                         .get(v.var_id)
                         .cloned()
@@ -111,6 +123,7 @@ impl StateSimulation {
                         VcdValue::Real(_) => {}
                     };
                 }
+                VcdCommand::Directive(_) | VcdCommand::VcdEnd => {}
             }
             false
         };
