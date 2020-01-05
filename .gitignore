@@ -1,2 +1,15 @@
+# IDE
+.idea
+
+# Rust
 /target
 Cargo.lock
+/bindings/target
+*.so
+
+# Python
+/venv
+/bindings/dist
+/bindings/build
+/bindings/*.egg-info
+__pycache__

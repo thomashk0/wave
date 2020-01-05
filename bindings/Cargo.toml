@@ -1,0 +1,20 @@
+[package]
+name = "wave-bindings"
+version = "0.2.0"
+authors = ["Thomas Hiscock <thomas.hiscock@wanadoo.fr>"]
+edition = "2018"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = "*"
+wave = { path = ".." }
+serde_json = "^1"
+
+[profile.release]
+# debug-assertions = true
+lto = true

@@ -28,6 +28,7 @@ pub enum VcdError {
     MissingData,
     PartialHeader,
     Utf8Error,
+    EndOfInput,
 }
 
 impl std::fmt::Display for VcdError {

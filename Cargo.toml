@@ -1,9 +1,11 @@
 [package]
 name = "wave"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Thomas Hiscock <thomashk000@gmail.com>"]
 edition = "2018"
 license = "MIT"
+repository = "https://github.com/thomashk0/wave"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
