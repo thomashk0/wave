@@ -19,6 +19,7 @@ use nom::{
 };
 use serde::Serialize;
 
+use crate::types::{Range, Scope, VariableInfo};
 use crate::utils;
 
 #[derive(Debug)]
@@ -64,12 +65,6 @@ impl<'a, E: ParseError<&'a str>> From<nom::Err<E>> for VcdError {
     }
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
-pub enum VcdRange {
-    Bit(u64),
-    Range((i64, i64)),
-}
-
 #[derive(Debug, Serialize, PartialEq)]
 pub struct VcdChange<'a> {
     pub var_id: &'a str,
@@ -102,37 +97,21 @@ pub enum VcdCommand<'a> {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct VcdVariable {
-    pub id: String,
-    pub vtype: String,
-    pub width: u32,
-    pub name: String,
-    pub range: Option<VcdRange>,
-    pub scope: Vec<VcdScope>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct VcdScope {
-    pub kind: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
 pub struct VcdHeader {
-    pub variables: Vec<VcdVariable>,
+    pub variables: Vec<VariableInfo>,
 }
 
 pub struct VcdHeaderParser {
     pub header: VcdHeader,
     header_valid: bool,
-    scope: Vec<VcdScope>,
+    scope: Vec<Scope>,
     verbose: bool,
 }
 
 impl VcdHeaderParser {
     pub fn new() -> Self {
         let mut scope = Vec::with_capacity(16);
-        scope.push(VcdScope {
+        scope.push(Scope {
             kind: "root".to_string(),
             name: ".".to_string(),
         });
@@ -160,7 +139,7 @@ impl VcdHeaderParser {
             "scope" => {
                 let (remaining, (kind, name)) =
                     terminated(tuple((vcd_word, vcd_word)), vcd_end)(remaining)?;
-                self.scope.push(VcdScope {
+                self.scope.push(Scope {
                     kind: String::from(kind),
                     name: String::from(name),
                 });
@@ -177,7 +156,7 @@ impl VcdHeaderParser {
                         tuple((vcd_word, var_width, vcd_word, var_name, opt(var_range))),
                         vcd_end,
                     )(remaining)?;
-                self.header.variables.push(VcdVariable {
+                self.header.variables.push(VariableInfo {
                     id: String::from(var_id),
                     vtype: String::from(var_type),
                     width: width as u32,
@@ -391,14 +370,14 @@ fn var_width<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, i64
     terminated(number, multispace0)(input)
 }
 
-fn var_range<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, VcdRange, E> {
+fn var_range<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Range, E> {
     let dual_range = map(
         separated_pair(var_width, terminated(char(':'), multispace0), var_width),
-        |r| VcdRange::Range(r),
+        |r| Range::Range(r),
     );
     let simple_range = map(var_width, |w| {
         assert!(w >= 0);
-        VcdRange::Bit(w as u64)
+        Range::Bit(w as u64)
     });
     delimited(
         terminated(char('['), multispace0),
@@ -568,7 +547,7 @@ mod tests {
     fn test_var_range() {
         type E<'a> = (&'a str, ErrorKind);
         for v in ["[ 4  ]  ...", "[4 ]\n...", "[4]\t..."].iter() {
-            assert_eq!(var_range::<E>(v), Ok(("...", VcdRange::Bit(4))));
+            assert_eq!(var_range::<E>(v), Ok(("...", Range::Bit(4))));
         }
         let w = [
             "[12:0]xx",
@@ -578,11 +557,11 @@ mod tests {
             "[ 12 : 0 ]\nxx",
         ];
         for v in w.iter() {
-            assert_eq!(var_range::<E>(v), Ok(("xx", VcdRange::Range((12, 0)))));
+            assert_eq!(var_range::<E>(v), Ok(("xx", Range::Range((12, 0)))));
         }
         assert_eq!(
             var_range::<E>("[-1: 0] xx"),
-            Ok(("xx", VcdRange::Range((-1, 0))))
+            Ok(("xx", Range::Range((-1, 0))))
         );
     }
 

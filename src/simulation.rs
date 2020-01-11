@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io;
 
-use crate::vcd::{VcdCommand, VcdError, VcdParser, VcdValue, VcdVariable};
+use crate::types::VariableInfo;
+use crate::vcd::{VcdCommand, VcdError, VcdParser, VcdValue};
 
 fn logic_level(c: char) -> i8 {
     match c {
@@ -68,13 +69,13 @@ impl StateSimulation {
         Ok(())
     }
 
-    pub fn header_info(&self) -> Result<HashMap<&str, (Option<usize>, VcdVariable)>, VcdError> {
+    pub fn header_info(&self) -> Result<HashMap<&str, (Option<usize>, VariableInfo)>, VcdError> {
         let var_info = &self
             .parser
             .header()
             .ok_or(VcdError::PartialHeader)?
             .variables;
-        let mut w: HashMap<&str, (Option<usize>, VcdVariable)> =
+        let mut w: HashMap<&str, (Option<usize>, VariableInfo)> =
             HashMap::with_capacity(var_info.len());
         for v in var_info {
             w.insert(&v.id, (self.var_map.get(&v.id).cloned(), v.clone()));
