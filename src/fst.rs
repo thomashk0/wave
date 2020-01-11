@@ -1,9 +1,10 @@
-use fst_sys;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_uchar, c_void};
 use std::ptr::null_mut;
 use std::slice;
 use std::str;
+
+use fst_sys;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum FstError {
