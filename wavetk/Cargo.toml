@@ -1,0 +1,25 @@
+[package]
+name = "wavetk"
+version = "0.3.0"
+authors = ["Thomas Hiscock <thomashk000@gmail.com>"]
+edition = "2018"
+license = "MIT"
+repository = "https://github.com/thomashk0/wave"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nom = "^5"
+serde = {version = "^1", features = ['derive']}
+serde_json = "^1"
+fst-sys = "0.2"
+
+[[test]]
+name = "vcd_parser"
+
+[[test]]
+name = "simulation"
+
+[[example]]
+name = "fst_read"

@@ -12,10 +12,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libc = "*"
-wavetk = { path = ".." }
+wavetk = { path = "../wavetk" }
 serde_json = "^1"
 
-[profile.release]
-# debug-assertions = true
-lto = true
-codegen-units = 1

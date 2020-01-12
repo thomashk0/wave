@@ -7,6 +7,7 @@ fn vcd_asset(rel_path: &str) -> PathBuf {
     let mut path = PathBuf::from(file!());
     path.pop();
     path.pop();
+    path.pop();
     path.push("assets/vcd");
     path.push(rel_path);
     path

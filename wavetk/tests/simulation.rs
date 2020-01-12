@@ -5,6 +5,7 @@ fn vcd_asset(rel_path: &str) -> PathBuf {
     let mut path = PathBuf::from(file!());
     path.pop();
     path.pop();
+    path.pop();
     path.push("assets/vcd");
     path.push(rel_path);
     path
@@ -13,6 +14,7 @@ fn vcd_asset(rel_path: &str) -> PathBuf {
 #[test]
 fn sim_ghdl_0() -> Result<(), Box<dyn std::error::Error>> {
     let f = vcd_asset("good/ghdl_0.vcd");
+    println!("{:?}", f);
     let mut sim = StateSimulation::new(f.to_str().unwrap())?;
     sim.load_header()?;
     sim.allocate_state()?;
