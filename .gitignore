@@ -9,7 +9,7 @@ Cargo.lock
 
 # Python
 /venv
-/bindings/dist
-/bindings/build
-/bindings/*.egg-info
+/bindings/python/dist
+/bindings/python/build
+/bindings/python/*.egg-info
 __pycache__

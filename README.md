@@ -10,9 +10,10 @@ or FST (from [Gtkwave](http://gtkwave.sourceforge.net/)).
 
 This project includes:
 
-* A Rust crate called `wavetk`, which contains structure functions for parsing and processing VCD file (FST is planned)
-* Low-level bindings to call these functions from other languages (see [./bindings](./bindings))
-* Python wrapper built on top of the FFI bindings
+* The rust crate [wavetk](./wavetk), which contains data structures and 
+  functions for parsing and processing VCD file (FST is planned)
+* Low-level bindings (i.e., C-compatible) around the library are defined in [./wavetk-bindings](./wavetk-bindings))
+* A Python wrapper [bindings/python](./bindings/python)
 
 ## License
 
