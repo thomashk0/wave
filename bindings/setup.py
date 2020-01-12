@@ -1,13 +1,13 @@
 import setuptools
 from distutils.core import setup
 
-setup(name='pywave',
+setup(name='wavetk',
       version='0.3.0',
       description='Python bindings around the Rust Wave library',
       author='Thomas Hiscock',
       author_email='thomashk000@gmail.com',
       setup_requires=['wheel'],
       install_requires=['numpy'],
-      packages=['pywave'],
-      package_data={'pywave': ['*.so']},
+      packages=['wavetk'],
+      package_data={'wavetk': ['*.so']},
       include_package_data=True)

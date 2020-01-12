@@ -5,7 +5,7 @@ values from a waveform file (eg., in VCD format)
 import argparse
 import sys
 
-from pywave import BIT_REPR, StateSim, WaveError, VariableInfo
+from wavetk import BIT_REPR, StateSim, WaveError, VariableInfo
 
 
 def value_str(v: VariableInfo, data):

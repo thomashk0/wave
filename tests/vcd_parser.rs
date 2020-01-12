@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use wave::vcd::{VcdHeader, VcdParser};
+use wavetk::vcd::{VcdHeader, VcdParser};
 
 fn vcd_asset(rel_path: &str) -> PathBuf {
     let mut path = PathBuf::from(file!());

@@ -1,5 +1,5 @@
 [package]
-name = "wave-bindings"
+name = "wavetk-bindings"
 version = "0.3.0"
 authors = ["Thomas Hiscock <thomas.hiscock@wanadoo.fr>"]
 edition = "2018"
@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libc = "*"
-wave = { path = ".." }
+wavetk = { path = ".." }
 serde_json = "^1"
 
 [profile.release]

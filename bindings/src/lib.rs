@@ -3,8 +3,8 @@ use std::os::raw::c_char;
 use std::ptr::null_mut;
 
 use std::slice;
-use wave::simulation::StateSimulation;
-use wave::vcd::VcdError;
+use wavetk::simulation::StateSimulation;
+use wavetk::vcd::VcdError;
 
 fn encode_error(err: VcdError) -> i32 {
     match err {

@@ -1,9 +1,11 @@
+use std::convert::TryFrom;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_uchar, c_void};
 use std::ptr::null_mut;
 use std::slice;
 use std::str;
 
+use crate::types::{Direction, FstScope, FstVariable, ScopeKind, VariableKind};
 use fst_sys;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -26,7 +28,21 @@ pub struct FstReader {
     handle: *mut c_void,
 }
 
+/// Analoguous to VariableInfo (for VCD), the two representation will be merged soon
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct FstHeader {
+    pub variables: Vec<FstVariable>,
+}
+
 type FstChangeCallback = extern "C" fn(*mut c_void, u64, fst_sys::fstHandle, *const c_uchar);
+
+fn make_string(ptr: *const c_char, n: usize) -> String {
+    assert!(!ptr.is_null());
+    unsafe {
+        let s = slice::from_raw_parts(ptr as *const c_uchar, n);
+        str::from_utf8(s).unwrap().to_string()
+    }
+}
 
 impl FstReader {
     pub fn from_file(name: &str, use_extensions: bool) -> Result<FstReader, FstError> {
@@ -42,7 +58,7 @@ impl FstReader {
         Ok(FstReader { handle: p })
     }
 
-    pub fn iter_hier<F>(&mut self, mut callback: F)
+    fn iter_hier<F>(&mut self, mut callback: F)
     where
         F: FnMut(&fst_sys::fstHier),
     {
@@ -63,6 +79,40 @@ impl FstReader {
             }
             callback(p.unwrap());
         }
+    }
+
+    pub fn load_header(&mut self) -> FstHeader {
+        let mut header = FstHeader::default();
+        let mut scope: Vec<FstScope> = Vec::new();
+        self.iter_hier(|h| match h.htyp as u32 {
+            fst_sys::fstHierType_FST_HT_SCOPE => {
+                let x = unsafe { h.u.scope };
+                let kind = ScopeKind::try_from(x.typ as u8).unwrap();
+                scope.push(FstScope {
+                    kind,
+                    name: make_string(x.name, x.name_length as usize),
+                })
+            }
+            fst_sys::fstHierType_FST_HT_UPSCOPE => {
+                scope.pop();
+            }
+            fst_sys::fstHierType_FST_HT_VAR => {
+                let x = unsafe { h.u.var };
+                let kind = VariableKind::try_from(x.typ as u8).unwrap();
+                let direction = Direction::try_from(x.direction as u8).unwrap();
+                header.variables.push(FstVariable {
+                    name: make_string(x.name, x.name_length as usize),
+                    direction,
+                    kind,
+                    width: x.length,
+                    handle: x.handle,
+                    scope: scope.clone(),
+                });
+            }
+            fst_sys::fstHierType_FST_HT_ATTREND | fst_sys::fstHierType_FST_HT_ATTRBEGIN => {}
+            _ => unreachable!("something went wrong"),
+        });
+        header
     }
 
     pub fn iter_blocks<F>(&mut self, mut f: F) -> i32
@@ -169,60 +219,4 @@ where
         (*closure)(time, handle, value);
     }
     (closure as *mut F as *mut c_void, trampoline::<F>)
-}
-
-pub fn dump_fst_hier(h: &fst_sys::fstHier) {
-    print!("Type: ");
-    let from_ptr = |p: *const c_char, v: usize| {
-        assert!(!p.is_null());
-        unsafe {
-            let s = slice::from_raw_parts(p as *const c_uchar, v);
-            str::from_utf8(s).unwrap()
-        }
-    };
-
-    match h.htyp as u32 {
-        fst_sys::fstHierType_FST_HT_SCOPE => {
-            println!("Scope");
-            let x = unsafe { h.u.scope };
-            println!("\tname: {}", from_ptr(x.name, x.name_length as usize));
-            println!(
-                "\tcomponent: {}",
-                from_ptr(x.component, x.component_length as usize)
-            );
-        }
-        fst_sys::fstHierType_FST_HT_UPSCOPE => {
-            println!("Upscope");
-        }
-        fst_sys::fstHierType_FST_HT_VAR => {
-            println!("Var");
-            let x = unsafe { h.u.var };
-            println!("\thandle: {}", x.handle);
-            println!("\tname: {}", from_ptr(x.name, x.name_length as usize));
-            println!("\ttype: {}", x.typ);
-            println!("\tlength: {}", x.length);
-            println!("\tdirection: {}", x.direction);
-        }
-        fst_sys::fstHierType_FST_HT_ATTRBEGIN => {
-            println!("AttrBegin");
-            let x = unsafe { h.u.attr };
-            println!(
-                "\ttype: {}",
-                match x.typ {
-                    0 => "MISC",
-                    1 => "Array",
-                    2 => "Enum",
-                    3 => "Pack",
-                    _ => "??",
-                }
-            );
-            println!("\tsubtype: {}", x.subtype);
-            println!("\targ: {}", x.arg);
-            println!("\tname: {:?}", from_ptr(x.name, x.name_length as usize));
-        }
-        fst_sys::fstHierType_FST_HT_ATTREND => {
-            println!("AttrEnd");
-        }
-        _ => println!("UNKNOWN"),
-    }
 }

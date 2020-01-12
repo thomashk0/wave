@@ -1,5 +1,5 @@
 [package]
-name = "wave"
+name = "wavetk"
 version = "0.3.0"
 authors = ["Thomas Hiscock <thomashk000@gmail.com>"]
 edition = "2018"

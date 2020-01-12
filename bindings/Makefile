@@ -1,21 +1,31 @@
 .DEFAULT_GOAL := all
 
-LIBS := pywave/libwave_bindings.so pywave/libwave_bindings_debug.so
+HERE := $(shell pwd)
+LIBS := libwavetk_bindings.so libwavetk_bindings_debug.so
+LIBS_OUT := $(addprefix wavetk/,$(LIBS))
 
 .PHONY: all
-all: $(LIBS)
+all: $(LIBS_OUT)
 
 .PHONY: wheel
-wheel: $(LIBS)
+wheel: $(LIBS_OUT)
 	python setup.py bdist_wheel
 
-target/debug/libwaves_bindings.so:
+.PHONY: clean
+clean:
+	-rm -f $(LIBS_OUT)
+
+$(HERE)/target/debug/libwavetk_bindings.so:
 	cargo build
 
-pywave/libwave_bindings_debug.so: target/debug/libwave_bindings.so
+$(HERE)/target/release/libwavetk_bindings.so:
+	cargo build --release
+
+wavetk/libwavetk_bindings_debug.so: $(HERE)/target/debug/libwavetk_bindings.so
 	cp $< $@
 
-pywave/libwave_bindings.so: target/release/libwave_bindings.so
+wavetk/libwavetk_bindings.so: $(HERE)/target/release/libwavetk_bindings.so
 	cp $< $@
 
--include target/debug/libwave_bindings.d
+-include target/debug/libwavetk_bindings.d
+-include target/release/libwavetk_bindings.d

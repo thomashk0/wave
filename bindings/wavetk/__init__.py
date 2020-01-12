@@ -7,9 +7,9 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pkg_resources
 
-SO_PATH_DEBUG = pkg_resources.resource_filename('pywave',
-                                                'libwave_bindings_debug.so')
-SO_PATH = pkg_resources.resource_filename('pywave', 'libwave_bindings.so')
+SO_PATH_DEBUG = pkg_resources.resource_filename('wavetk',
+                                                'libwavetk_bindings_debug.so')
+SO_PATH = pkg_resources.resource_filename('wavetk', 'libwavetk_bindings.so')
 
 LIB = ctypes.cdll.LoadLibrary(SO_PATH)
 LIB_DEBUG = ctypes.cdll.LoadLibrary(SO_PATH_DEBUG)

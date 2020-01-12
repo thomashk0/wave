@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use wave::simulation::StateSimulation;
+use wavetk::simulation::StateSimulation;
 
 fn vcd_asset(rel_path: &str) -> PathBuf {
     let mut path = PathBuf::from(file!());

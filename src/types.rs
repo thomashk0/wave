@@ -7,9 +7,10 @@ pub enum Range {
     Range((i64, i64)),
 }
 
-/// For enums represented by an integer type, this macro implements the TryFrom trait. The
-/// conversion is done by a direct std::mem::transmute, but the value is checked to be
-/// < Type::End before converting
+/// For enums represented by an integer type, this macro implements the
+/// TryFrom trait. The conversion is done by a direct std::mem::transmute
+/// (unsafe), but the value is checked to be less than Type::End before
+/// converting.
 macro_rules! enum_direct_conversion {
     ($t:ty, $o:ty) => {
         impl TryFrom<$o> for $t {
@@ -140,4 +141,15 @@ pub struct FstVariable {
     pub direction: Direction,
     pub kind: VariableKind,
     pub width: u32,
+    pub handle: u32,
+    pub scope: Vec<FstScope>,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct FstScope {
+    pub kind: ScopeKind,
+    pub name: String,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+pub struct LogicLevel(i8);
