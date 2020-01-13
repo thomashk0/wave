@@ -19,7 +19,7 @@ use nom::{
 };
 use serde::Serialize;
 
-use crate::types::{Range, Scope, VariableInfo};
+use crate::types::{Direction, Range, Scope, VariableInfo, VariableKind};
 use crate::utils;
 
 #[derive(Debug)]
@@ -110,17 +110,12 @@ pub struct VcdHeaderParser {
 
 impl VcdHeaderParser {
     pub fn new() -> Self {
-        let mut scope = Vec::with_capacity(16);
-        scope.push(Scope {
-            kind: "root".to_string(),
-            name: ".".to_string(),
-        });
         VcdHeaderParser {
             header: VcdHeader {
                 variables: Vec::with_capacity(1024),
             },
             header_valid: false,
-            scope,
+            scope: Vec::with_capacity(16),
             verbose: false,
         }
     }
@@ -139,10 +134,7 @@ impl VcdHeaderParser {
             "scope" => {
                 let (remaining, (kind, name)) =
                     terminated(tuple((vcd_word, vcd_word)), vcd_end)(remaining)?;
-                self.scope.push(Scope {
-                    kind: String::from(kind),
-                    name: String::from(name),
-                });
+                self.scope.push(Scope::from_str(kind, name));
                 Ok((remaining, false))
             }
             "upscope" => {
@@ -158,11 +150,13 @@ impl VcdHeaderParser {
                     )(remaining)?;
                 self.header.variables.push(VariableInfo {
                     id: String::from(var_id),
-                    vtype: String::from(var_type),
+                    kind: VariableKind::from(var_type),
                     width: width as u32,
                     name: String::from(var_name),
                     range,
+                    handle: 0,
                     scope: self.scope.clone(),
+                    direction: Direction::Implicit,
                 });
                 Ok((remaining, false))
             }

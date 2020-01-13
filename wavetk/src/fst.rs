@@ -5,7 +5,7 @@ use std::ptr::null_mut;
 use std::slice;
 use std::str;
 
-use crate::types::{Direction, FstScope, FstVariable, ScopeKind, VariableKind};
+use crate::types::{Direction, FstHeader, Scope, ScopeKind, VariableInfo, VariableKind};
 use fst_sys;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -26,12 +26,6 @@ pub enum FstFileType {
 #[derive(Debug)]
 pub struct FstReader {
     handle: *mut c_void,
-}
-
-/// Analoguous to VariableInfo (for VCD), the two representation will be merged soon
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct FstHeader {
-    pub variables: Vec<FstVariable>,
 }
 
 type FstChangeCallback = extern "C" fn(*mut c_void, u64, fst_sys::fstHandle, *const c_uchar);
@@ -83,12 +77,12 @@ impl FstReader {
 
     pub fn load_header(&mut self) -> FstHeader {
         let mut header = FstHeader::default();
-        let mut scope: Vec<FstScope> = Vec::new();
+        let mut scope: Vec<Scope> = Vec::new();
         self.iter_hier(|h| match h.htyp as u32 {
             fst_sys::fstHierType_FST_HT_SCOPE => {
                 let x = unsafe { h.u.scope };
                 let kind = ScopeKind::try_from(x.typ as u8).unwrap();
-                scope.push(FstScope {
+                scope.push(Scope {
                     kind,
                     name: make_string(x.name, x.name_length as usize),
                 })
@@ -100,11 +94,13 @@ impl FstReader {
                 let x = unsafe { h.u.var };
                 let kind = VariableKind::try_from(x.typ as u8).unwrap();
                 let direction = Direction::try_from(x.direction as u8).unwrap();
-                header.variables.push(FstVariable {
+                header.variables.push(VariableInfo {
+                    id: "".to_string(),
                     name: make_string(x.name, x.name_length as usize),
                     direction,
                     kind,
                     width: x.length,
+                    range: None,
                     handle: x.handle,
                     scope: scope.clone(),
                 });

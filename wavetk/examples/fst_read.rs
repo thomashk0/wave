@@ -1,3 +1,5 @@
+use std::ffi::CStr;
+use std::os::raw::c_char;
 use wavetk::fst::FstReader;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,10 +20,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{:?}", v);
     }
 
-    //    reader.iter_hier(dump_fst_hier);
-    //    reader.iter_blocks(|cycle, var_handle, value| {
-    //        let value_str = unsafe { CStr::from_ptr(value as *const c_char).to_str().unwrap() };
-    //        println!("{:4} {:3} -> {}", cycle, var_handle, value_str);
-    //    });
+    reader.time_range(Some((0, 1)));
+    reader.iter_blocks(|cycle, var_handle, value| {
+        let value_str = unsafe { CStr::from_ptr(value as *const c_char).to_str().unwrap() };
+        println!("{:4} {:3} -> {}", cycle, var_handle, value_str);
+    });
     Ok(())
 }

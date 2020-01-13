@@ -102,6 +102,31 @@ pub enum VariableKind {
     End = 30,
 }
 
+impl From<&str> for VariableKind {
+    fn from(name: &str) -> Self {
+        match name {
+            "event" => VariableKind::VcdEvent,
+            "integer" => VariableKind::VcdInteger,
+            "parameter" => VariableKind::VcdParameter,
+            "real" => VariableKind::VcdReal,
+            "reg" => VariableKind::VcdReg,
+            "supply0" => VariableKind::VcdSupply0,
+            "supply1" => VariableKind::VcdSupply1,
+            "time" => VariableKind::VcdTime,
+            "tri" => VariableKind::VcdTri,
+            "triand" => VariableKind::VcdTriand,
+            "trior" => VariableKind::VcdTrior,
+            "trireg" => VariableKind::VcdTrireg,
+            "tri0" => VariableKind::VcdTri0,
+            "tri1" => VariableKind::VcdTri1,
+            "wand" => VariableKind::VcdTriand,
+            "wire" => VariableKind::VcdWire,
+            "wor" => VariableKind::VcdWor,
+            _ => VariableKind::End,
+        }
+    }
+}
+
 enum_direct_conversion!(VariableKind, u8);
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -118,38 +143,47 @@ pub enum Direction {
 
 enum_direct_conversion!(Direction, u8);
 
-#[derive(Clone, Debug, Serialize)]
-pub struct Scope {
-    pub kind: String,
-    pub name: String,
-}
+/// Identifiers for variables
+type VarHandle = u32;
 
-#[derive(Clone, Debug, Serialize)]
+/// Analogous to VariableInfo (for VCD), the two representation will be merged soon
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct VariableInfo {
     pub id: String,
-    pub vtype: String,
-    pub width: u32,
-    pub name: String,
-    pub range: Option<Range>,
-    pub scope: Vec<Scope>,
-}
-
-/// Analoguous to VariableInfo (for VCD), the two representation will be merged soon
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct FstVariable {
     pub name: String,
     pub direction: Direction,
     pub kind: VariableKind,
     pub width: u32,
-    pub handle: u32,
-    pub scope: Vec<FstScope>,
+    pub range: Option<Range>,
+    pub handle: VarHandle,
+    pub scope: Vec<Scope>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
-pub struct FstScope {
+pub struct Scope {
     pub kind: ScopeKind,
     pub name: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
-pub struct LogicLevel(i8);
+impl Scope {
+    pub fn from_str(kind_str: &str, name: &str) -> Self {
+        let kind = match kind_str {
+            "module" => ScopeKind::VcdModule,
+            "begin" => ScopeKind::VcdBegin,
+            "fork" => ScopeKind::VcdFork,
+            "function" => ScopeKind::VcdFunction,
+            "task" => ScopeKind::VcdTask,
+            _ => ScopeKind::Other,
+        };
+        Scope {
+            kind,
+            name: name.to_string(),
+        }
+    }
+}
+
+/// Analoguous to VariableInfo (for VCD), the two representation will be merged soon
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct FstHeader {
+    pub variables: Vec<VariableInfo>,
+}

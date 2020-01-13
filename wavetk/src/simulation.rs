@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io;
 
-use crate::types::VariableInfo;
+use crate::types::{VariableInfo, VariableKind};
 use crate::vcd::{VcdCommand, VcdError, VcdParser, VcdValue};
 
 fn logic_level(c: char) -> i8 {
@@ -55,7 +55,7 @@ impl StateSimulation {
             .ok_or(VcdError::PartialHeader)?
             .variables;
         for v in variables {
-            if v.vtype == "real" {
+            if v.kind == VariableKind::VcdReal {
                 continue;
             }
             if !self.tracked_var.is_empty() && !self.tracked_var.contains(&v.id) {
