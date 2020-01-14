@@ -61,6 +61,8 @@ parse_tests! {
     (parse_ieee_1364_2001_16, "good/ieee_1364_2001_sample.vcd", 16, 5, 50),
     (parse_ncsim_32, "good/ncsim_0.vcd", 32, 3, 55),
     (parse_ncsim_4096, "good/ncsim_0.vcd", 4096, 3, 55),
+    (parse_verilator_31, "good/verilator_riscv.vcd", 31, 2102, 7230),
+    (parse_verilator_4096, "good/verilator_riscv.vcd", 4096, 2102, 7230),
 }
 
 #[test]
