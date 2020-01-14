@@ -28,12 +28,39 @@ fn parse_file(
     Ok((header, cnt))
 }
 
-#[test]
-fn parse_ghdl_0() -> Result<(), Box<dyn std::error::Error>> {
-    let (header, n_cmd) = parse_file(&vcd_asset("good/ghdl_0.vcd"), 3)?;
-    assert_eq!(header.variables.len(), 10);
-    assert_eq!(n_cmd, 29);
+fn check_file(
+    path: &str,
+    chunk_size: usize,
+    n_var: usize,
+    n_cmd: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (header, cmd_count) = parse_file(&vcd_asset(path), chunk_size)?;
+    assert_eq!(header.variables.len(), n_var);
+    assert_eq!(cmd_count, n_cmd);
     Ok(())
+}
+
+macro_rules! parse_tests {
+    ($(($name:ident, $path:expr, $chunk_size:expr, $n_var:expr, $n_cmd:expr),)*) => {
+    $(
+        #[test]
+        fn $name() -> Result<(), Box<dyn std::error::Error>> {
+            check_file($path, $chunk_size, $n_var, $n_cmd)
+        }
+    )*
+    }
+}
+
+parse_tests! {
+    (parse_ghdl_3, "good/ghdl_0.vcd", 3, 10, 29),
+    (parse_ghdl_13, "good/ghdl_0.vcd", 13, 10, 29),
+    (parse_ghdl_128, "good/ghdl_0.vcd", 128, 10, 29),
+    (parse_simple_10, "good/simple_0.vcd", 10, 1, 18),
+    (parse_simple_1024, "good/simple_0.vcd", 1024, 1, 18),
+    (parse_synopsys_256, "good/synopsys_vcd_0.vcd", 256, 16, 55),
+    (parse_ieee_1364_2001_16, "good/ieee_1364_2001_sample.vcd", 16, 5, 50),
+    (parse_ncsim_32, "good/ncsim_0.vcd", 32, 3, 55),
+    (parse_ncsim_4096, "good/ncsim_0.vcd", 4096, 3, 55),
 }
 
 #[test]
