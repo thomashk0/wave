@@ -2,7 +2,7 @@ import setuptools
 from distutils.core import setup
 
 setup(name='wavetk',
-      version='0.3.0',
+      version='0.4.0',
       description='Python bindings around the Rust Wave library',
       author='Thomas Hiscock',
       author_email='thomashk000@gmail.com',

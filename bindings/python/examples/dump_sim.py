@@ -36,6 +36,8 @@ def main():
     restrict = args.restrict or None
     try:
         sim = StateSim(args.input)
+        print("info: native wavetk bindings version ->",
+              ".".join(map(str, sim.lib_version())))
         sim.load_header()
         sim.allocate_state(restrict=restrict)
         info = sim.header_info()

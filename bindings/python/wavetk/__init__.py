@@ -34,6 +34,8 @@ class _StateSimS(ctypes.Structure):
 
 
 for _lib in [LIB_DEBUG, LIB]:
+    _lib.wavetk_version.restype = ctypes.c_uint32
+
     _lib.wave_sim_create.argtypes = (ctypes.c_char_p, POINTER(ctypes.c_int32),)
     _lib.wave_sim_create.restype = POINTER(_StateSimS)
 
@@ -143,6 +145,14 @@ class StateSim:
         if not self.handle:
             raise WaveError(Status(status.value),
                             "unable to create StateSim instance")
+
+    def lib_version(self):
+        """
+        Returns a 3-tuple containing (major, minor, patch) of the native
+        library included
+        """
+        v = self.lib.wavetk_version()
+        return (v >> 16) & 255, (v >> 8) & 255, v & 255
 
     def load_header(self):
         status = Status(self.lib.wave_sim_load_header(self.handle))

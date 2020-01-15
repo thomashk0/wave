@@ -2,9 +2,14 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 
+use std::num::ParseIntError;
 use std::slice;
 use wavetk::simulation::StateSimulation;
 use wavetk::vcd::VcdError;
+
+const VERSION_MAJOR: &'static str = env!("CARGO_PKG_VERSION_MAJOR");
+const VERSION_MINOR: &'static str = env!("CARGO_PKG_VERSION_MINOR");
+const VERSION_PATCH: &'static str = env!("CARGO_PKG_VERSION_PATCH");
 
 fn encode_error(err: VcdError) -> i32 {
     match err {
@@ -15,6 +20,19 @@ fn encode_error(err: VcdError) -> i32 {
         VcdError::Utf8Error => 5,
         VcdError::EndOfInput => 6,
     }
+}
+
+fn get_version() -> Result<(u8, u8, u8), ParseIntError> {
+    let major = VERSION_MAJOR.parse::<u8>()?;
+    let minor = VERSION_MINOR.parse::<u8>()?;
+    let patch = VERSION_PATCH.parse::<u8>()?;
+    Ok((major, minor, patch))
+}
+
+#[no_mangle]
+pub extern "C" fn wavetk_version() -> u32 {
+    let v = get_version().unwrap_or((0, 0, 0));
+    (v.2 as u32) << 16 | (v.1 as u32) << 8 | (v.0 as u32)
 }
 
 #[no_mangle]
