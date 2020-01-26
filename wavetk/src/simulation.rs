@@ -21,7 +21,7 @@ fn logic_level(c: char) -> i8 {
 pub struct StateSimulation {
     parser: VcdParser<File>,
     state: Vec<i8>,
-    var_map: HashMap<String, usize>,
+    var_offset: HashMap<String, usize>,
     var_width: HashMap<String, usize>,
     tracked_var: HashSet<String>,
     previous_cycle: i64,
@@ -35,12 +35,16 @@ impl StateSimulation {
         Ok(StateSimulation {
             parser: VcdParser::with_chunk_size(4096, f),
             state: Vec::with_capacity(N_VAR),
-            var_map: HashMap::with_capacity(N_VAR),
+            var_offset: HashMap::with_capacity(N_VAR),
             var_width: HashMap::with_capacity(N_VAR),
             tracked_var: HashSet::new(),
             previous_cycle: -1,
             current_cycle: -1,
         })
+    }
+
+    pub fn state(&self) -> &[i8] {
+        &self.state
     }
 
     pub fn track_variables(&mut self, vars: &[&str]) {
@@ -54,14 +58,25 @@ impl StateSimulation {
             .header()
             .ok_or(VcdError::PartialHeader)?
             .variables;
+
+        self.var_offset.clear();
+        self.var_width.clear();
         for v in variables {
+            if self.var_offset.get(&v.id).is_some() {
+                // It seems legal that several variables map to the same ID. For example the
+                // clock is defined in many component but they all map to the same ID.
+                //
+                // FIXME: maybe the header should be checked for correctness upon load?
+                assert_eq!(self.var_width.get(&v.id).cloned(), Some(v.width as usize));
+                continue;
+            }
             if v.kind == VariableKind::VcdReal {
                 continue;
             }
             if !self.tracked_var.is_empty() && !self.tracked_var.contains(&v.id) {
                 continue;
             }
-            self.var_map.insert(v.id.clone(), offset);
+            self.var_offset.insert(v.id.clone(), offset);
             self.var_width.insert(v.id.clone(), v.width as usize);
             offset += v.width as usize;
         }
@@ -70,15 +85,15 @@ impl StateSimulation {
     }
 
     pub fn header_info(&self) -> Result<HashMap<&str, (Option<usize>, VariableInfo)>, VcdError> {
-        let var_info = &self
+        let variables = &self
             .parser
             .header()
             .ok_or(VcdError::PartialHeader)?
             .variables;
         let mut w: HashMap<&str, (Option<usize>, VariableInfo)> =
-            HashMap::with_capacity(var_info.len());
-        for v in var_info {
-            w.insert(&v.id, (self.var_map.get(&v.id).cloned(), v.clone()));
+            HashMap::with_capacity(variables.len());
+        for v in variables {
+            w.insert(&v.id, (self.var_offset.get(&v.id).cloned(), v.clone()));
         }
         Ok(w)
     }
@@ -94,7 +109,7 @@ impl StateSimulation {
 
     pub fn next_cycle(&mut self) -> Result<(i64, &[i8]), VcdError> {
         let state = &mut self.state;
-        let var_map = &self.var_map;
+        let var_offset = &self.var_offset;
         let var_width = &self.var_width;
         let tracked_var = &self.tracked_var;
         let mut cycle = 0;
@@ -108,7 +123,7 @@ impl StateSimulation {
                     if !tracked_var.is_empty() && !tracked_var.contains(v.var_id) {
                         return false;
                     }
-                    let base = var_map
+                    let base = var_offset
                         .get(v.var_id)
                         .cloned()
                         .expect(&format!("missing key {}", v.var_id));
