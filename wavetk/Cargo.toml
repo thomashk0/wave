@@ -23,3 +23,6 @@ name = "simulation"
 
 [[example]]
 name = "fst_read"
+
+[[example]]
+name = "state_simulation"

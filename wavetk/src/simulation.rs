@@ -6,13 +6,13 @@ use crate::types::{VariableInfo, VariableKind};
 use crate::vcd::{VcdCommand, VcdError, VcdParser, VcdValue};
 
 fn logic_level(c: char) -> i8 {
-    match c {
-        '0' => 0,
-        '1' => 1,
-        'U' | 'u' => -1,
-        'W' | 'w' => -2,
-        'Z' | 'z' => -3,
-        'X' | 'x' => -4,
+    match c as u8 {
+        b'0' => 0,
+        b'1' => 1,
+        b'U' | b'u' => -1,
+        b'W' | b'w' => -2,
+        b'Z' | b'z' => -3,
+        b'X' | b'x' => -4,
         _ => -5,
     }
 }
