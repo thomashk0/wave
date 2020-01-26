@@ -11,7 +11,10 @@ const VERSION_MAJOR: &'static str = env!("CARGO_PKG_VERSION_MAJOR");
 const VERSION_MINOR: &'static str = env!("CARGO_PKG_VERSION_MINOR");
 const VERSION_PATCH: &'static str = env!("CARGO_PKG_VERSION_PATCH");
 
-fn encode_error(err: VcdError) -> i32 {
+/// FFI error codes, encoded as an i32
+type WaveTkStatus = i32;
+
+fn encode_error(err: VcdError) -> WaveTkStatus {
     match err {
         VcdError::IoError(_) => 1,
         VcdError::ParseError => 2,
@@ -22,6 +25,7 @@ fn encode_error(err: VcdError) -> i32 {
     }
 }
 
+/// Get the (major, minor, patch) triple for this crate version
 fn get_version() -> Result<(u8, u8, u8), ParseIntError> {
     let major = VERSION_MAJOR.parse::<u8>()?;
     let minor = VERSION_MINOR.parse::<u8>()?;
@@ -32,7 +36,7 @@ fn get_version() -> Result<(u8, u8, u8), ParseIntError> {
 #[no_mangle]
 pub extern "C" fn wavetk_version() -> u32 {
     let v = get_version().unwrap_or((0, 0, 0));
-    (v.2 as u32) << 16 | (v.1 as u32) << 8 | (v.0 as u32)
+    (v.0 as u32) << 16 | (v.1 as u32) << 8 | (v.2 as u32)
 }
 
 #[no_mangle]
@@ -56,7 +60,7 @@ pub unsafe extern "C" fn wave_sim_create(
 }
 
 #[no_mangle]
-pub extern "C" fn wave_sim_load_header(ptr: *mut StateSimulation) -> i32 {
+pub extern "C" fn wave_sim_load_header(ptr: *mut StateSimulation) -> WaveTkStatus {
     assert!(!ptr.is_null());
     let sim = unsafe { &mut *ptr };
     match sim.load_header() {
@@ -70,7 +74,7 @@ pub extern "C" fn wave_sim_allocate_state(
     ptr: *mut StateSimulation,
     restrict: *const *const c_char,
     n: usize,
-) -> i32 {
+) -> WaveTkStatus {
     assert!(!ptr.is_null());
     let sim = unsafe { &mut *ptr };
     if !restrict.is_null() && n > 0 {
@@ -110,13 +114,29 @@ pub unsafe extern "C" fn wave_sim_header_info(ptr: *const StateSimulation) -> *m
     }
 }
 
+/// Retrieve the internal state buffer pointer an size.
+///
+/// Important: it gets invalidated by calls to allocate_state.
+#[no_mangle]
+pub unsafe extern "C" fn wavetk_sim_state_buffer(
+    ptr: *mut StateSimulation,
+    data: *mut *const i8,
+    size: *mut u64,
+) -> WaveTkStatus {
+    assert!(!ptr.is_null());
+    let sim = &mut *ptr;
+    *data = sim.state().as_ptr();
+    *size = sim.state().len() as u64;
+    0
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn wave_sim_next_cycle(
     ptr: *mut StateSimulation,
     cycle: *mut i64,
     data: *mut *const i8,
     size: *mut u64,
-) -> i32 {
+) -> WaveTkStatus {
     assert!(!ptr.is_null());
     let sim = &mut *ptr;
     if sim.done() {

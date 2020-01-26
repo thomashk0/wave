@@ -7,12 +7,34 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pkg_resources
 
-SO_PATH_DEBUG = pkg_resources.resource_filename('wavetk',
-                                                'libwavetk_bindings_debug.so')
-SO_PATH = pkg_resources.resource_filename('wavetk', 'libwavetk_bindings.so')
+SO_PATH = {'debug': pkg_resources.resource_filename('wavetk',
+                                                    'libwavetk_bindings_debug.so'),
+           'release': pkg_resources.resource_filename('wavetk',
+                                                      'libwavetk_bindings.so')}
 
-LIB = ctypes.cdll.LoadLibrary(SO_PATH)
-LIB_DEBUG = ctypes.cdll.LoadLibrary(SO_PATH_DEBUG)
+# Internal handles to libraries (lazily loaded)
+_LIBS = {}
+
+
+def load_wavetk_lib(debug=False):
+    global _LIBS
+    cfg = 'debug' if debug else 'release'
+    lib = _LIBS.get(cfg)
+    if lib:
+        return lib
+
+    lib = ctypes.cdll.LoadLibrary(SO_PATH[cfg])
+
+    # Some type info are needed for the API to be properly working
+    lib.wavetk_version.restype = ctypes.c_uint32
+
+    lib.wave_sim_create.argtypes = (ctypes.c_char_p, POINTER(ctypes.c_int32),)
+    lib.wave_sim_create.restype = POINTER(_StateSimS)
+
+    lib.wave_sim_header_info.restype = ctypes.c_char_p
+    lib.wave_str_destroy.argtypes = (ctypes.c_char_p,)
+    _LIBS[cfg] = lib
+    return lib
 
 
 @enum.unique
@@ -33,17 +55,10 @@ class _StateSimS(ctypes.Structure):
     pass
 
 
-for _lib in [LIB_DEBUG, LIB]:
-    _lib.wavetk_version.restype = ctypes.c_uint32
-
-    _lib.wave_sim_create.argtypes = (ctypes.c_char_p, POINTER(ctypes.c_int32),)
-    _lib.wave_sim_create.restype = POINTER(_StateSimS)
-
-    _lib.wave_sim_header_info.restype = ctypes.c_char_p
-    _lib.wave_str_destroy.argtypes = (ctypes.c_char_p,)
-
-
 def _raw_numpy_array(pointer, typestr, shape, copy=False, read_only_flag=False):
+    """Create a numpy array view on a raw buffer (that can be allocated by some
+    FFI library.
+    """
     buff = {'data': (pointer, read_only_flag),
             'typestr': typestr,
             'shape': shape}
@@ -137,14 +152,15 @@ class HeaderInfo(_ObjWrapper):
 
 
 class StateSim:
-    def __init__(self, filename, lib=LIB):
-        self.lib = lib
+    def __init__(self, filename, lib=None):
+        self.lib = lib or load_wavetk_lib(debug=False)
         status = ctypes.c_int32(0)
         self.handle = self.lib.wave_sim_create(filename.encode('utf-8'),
                                                ctypes.byref(status))
         if not self.handle:
             raise WaveError(Status(status.value),
                             "unable to create StateSim instance")
+        self._state_buff = None
 
     def lib_version(self):
         """
@@ -159,6 +175,15 @@ class StateSim:
         if status != Status.OK:
             raise WaveError(status, "unable to load header")
 
+    def _get_state_buffer(self) -> np.ndarray:
+        p = ctypes.c_void_p()
+        size = ctypes.c_uint64(0)
+        status = Status(self.lib.wavetk_sim_state_buffer(self.handle, byref(p),
+                                                         byref(size)))
+        if status != Status.OK:
+            raise WaveError(status, "unable to get state buffer")
+        return _raw_numpy_array(p.value, "<i1", (int(size.value),))
+
     def allocate_state(self, restrict=None):
         p = None
         n = ctypes.c_size_t(0)
@@ -170,6 +195,7 @@ class StateSim:
         status = Status(self.lib.wave_sim_allocate_state(self.handle, p, n))
         if status != Status.OK:
             raise WaveError(status, "unable to allocate simulation state")
+        self._state_buff = self._get_state_buffer()
 
     def header_info(self) -> HeaderInfo:
         """Query waveform header information
