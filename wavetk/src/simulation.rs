@@ -131,8 +131,17 @@ impl StateSimulation {
                         VcdValue::Bit(c) => state[base] = logic_level(c),
                         VcdValue::Vector(x) => {
                             let w = var_width.get(v.var_id).cloned().unwrap();
-                            assert_eq!(w, x.len());
-                            for (el, c) in state[base..base + w].iter_mut().zip(x.chars()) {
+                            assert!(x.len() <= w, "unsupported vector format");
+                            let fill_size = w - x.len();
+
+                            // According to the standard, section 18.2.2, vectors
+                            // should be left-extented with the leftmost value.
+                            let v = logic_level(x.chars().next().unwrap());
+                            for el in state[base..base + fill_size].iter_mut() {
+                                *el = v;
+                            }
+
+                            for (el, c) in state[base + fill_size..base + w].iter_mut().zip(x.chars()) {
                                 *el = logic_level(c);
                             }
                         }

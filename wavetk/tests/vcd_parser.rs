@@ -63,6 +63,7 @@ parse_tests! {
     (parse_ncsim_4096, "good/ncsim_0.vcd", 4096, 3, 55),
     (parse_verilator_31, "good/verilator_riscv.vcd", 31, 2102, 7230),
     (parse_verilator_4096, "good/verilator_riscv.vcd", 4096, 2102, 7230),
+    (parse_iverilog_4096, "good/picorv32_iverilog.vcd", 4096, 418, 355),
 }
 
 #[test]
